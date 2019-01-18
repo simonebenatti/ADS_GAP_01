@@ -24,6 +24,10 @@
 #define PADFUN0_REG 0x1A104140
 #define PADFUN1_REG 0x1A104144
 
+#define TX_SADDR 0x1A102210   //address of the TX_buffer
+#define TX_SIZE  0x1A102214   //size of the TX_buffer
+#define TX_CFG   0x1A102218   // write 0x10 to start uDMA transfer
+
 
 char tx_spi_vector[DEFAULT_SPI_TX_PCK_SIZE];
 char rx_spi_vector[ADS_SAMPLE_PCK_LENGTH];
@@ -89,7 +93,7 @@ int main()
 	/*Config Config1 to Config3*/
 	tx_buffer[0] = _WREG|CONFIG1;		//starting address
 	tx_buffer[1] = 2;					//n bits to be written-1
-	tx_buffer[2] = 0xB4;//0xE2;				//values . . . .
+	tx_buffer[2] = 0x83;//0xE2;				//values . . . .
 	tx_buffer[3] = 0xF0;//0x55;
 	tx_buffer[4] = 0xE0;//0xC0;
 	//tx_buffer[5] = 0x02;
@@ -169,7 +173,7 @@ int main()
 	printf("\n Finished setting up stuff . . .\n ");
 
 	int converted_data[N_CHANNELS];
-
+	char pck_counter;
 	while(1)
 	{
 
@@ -191,7 +195,16 @@ int main()
 				rt_time_wait_us(25);
 				MUX_custom_sequence(MUX_sequence, MUX_CUSTOM_SEQUENCE_LENGTH);
 				MUX_SETTLE_counter = 0;
-				rt_uart_write(uart, tx_buffer_UART, 24, NULL);
+				rx_buffer[1] = pck_counter++;
+				//rt_uart_write(uart, rx_buffer, 24, NULL);
+				*((unsigned int *) (TX_SADDR)) = rx_buffer;
+				*((unsigned int *) (TX_SIZE)) = 0x10;
+				*((unsigned int *) (TX_CFG)) = 0x10;
+
+
+
+
+
 
 			}
 
