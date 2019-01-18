@@ -17,11 +17,9 @@
 #include"main.h"
 
 #define BUFFER_SIZE 256
-#define BAUD_RATE 921600
+#define BAUD_RATE 1382400
 #define NB_TICKS 20
 
-#define GPIO_MUX1 	5
-#define GPIO_MUX2	17
 
 #define PADFUN0_REG 0x1A104140
 #define PADFUN1_REG 0x1A104144
@@ -29,11 +27,13 @@
 
 char tx_spi_vector[DEFAULT_SPI_TX_PCK_SIZE];
 char rx_spi_vector[ADS_SAMPLE_PCK_LENGTH];
-
 char out_1 = 0;
 char out_2 = 0;
 
-RT_L2_DATA uint8_t tx_buffer[BUFFER_SIZE];
+RT_L2_DATA uint8_t tx_buffer_UART[BUFFER_SIZE];
+RT_L2_DATA char MUX_sequence[MUX_CUSTOM_SEQUENCE_LENGTH] = {0,1,2,3};
+
+char MUX_SETTLE_counter = 0;
 
 
 int main()
@@ -72,53 +72,53 @@ int main()
 	/*Start Confifuration*/
 	int spi_tx_buffer_size;
 
-    /*Reset ADS1298*/
-    tx_buffer[1] = _RESET;
-    rt_spim_send(spim, tx_spi_vector, 8, RT_SPIM_CS_AUTO, NULL);
-    rt_time_wait_us(1000);													//this just because Nordic can't put up with the speed between transfers.
-    printf("\n _RESET \n");
+	/*Reset ADS1298*/
+	tx_buffer[1] = _RESET;
+	rt_spim_send(spim, tx_spi_vector, 8, RT_SPIM_CS_AUTO, NULL);
+	rt_time_wait_us(1000);													//this just because Nordic can't put up with the speed between transfers.
+	printf("\n _RESET \n");
 
-    /*Stop data streaming ADS1298*/
+	/*Stop data streaming ADS1298*/
 
-    tx_buffer[1] = _SDATAC;
-    rt_spim_send(spim, tx_spi_vector, 8, RT_SPIM_CS_AUTO, NULL);
-    rt_time_wait_us(1000);													//this just because Nordic can't put up with the speed between transfers.
-    printf("\n _SDATAC \n");
+	tx_buffer[1] = _SDATAC;
+	rt_spim_send(spim, tx_spi_vector, 8, RT_SPIM_CS_AUTO, NULL);
+	rt_time_wait_us(1000);													//this just because Nordic can't put up with the speed between transfers.
+	printf("\n _SDATAC \n");
 
 
-    /*Config Config1 to Config3*/
-    tx_buffer[0] = _WREG|CONFIG1;		//starting address
-    tx_buffer[1] = 2;					//n bits to be written-1
-    tx_buffer[2] = 0xB2;//0xE2;				//values . . . .
-    tx_buffer[3] = 0xF0;//0x55;
-    tx_buffer[4] = 0xE0;//0xC0;
-    //tx_buffer[5] = 0x02;
-    spi_tx_buffer_size = 5;
-    rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
-    printf("\n _WREG|CONFIG1 \n");
-    rt_time_wait_us(1000);
-    /*Config all channels*/
-    tx_buffer[0] = _WREG|CH1SET;
-    tx_buffer[1] = 7;
-    for (int i=2; i<10; i++) tx_buffer[i]=0x60;
-    spi_tx_buffer_size = 10;
-    rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
-    printf("\n _WREG|CH1SET \n");
-    rt_time_wait_us(1000);
-    /*Start ADS1298*/
+	/*Config Config1 to Config3*/
+	tx_buffer[0] = _WREG|CONFIG1;		//starting address
+	tx_buffer[1] = 2;					//n bits to be written-1
+	tx_buffer[2] = 0xB4;//0xE2;				//values . . . .
+	tx_buffer[3] = 0xF0;//0x55;
+	tx_buffer[4] = 0xE0;//0xC0;
+	//tx_buffer[5] = 0x02;
+	spi_tx_buffer_size = 5;
+	rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
+	printf("\n _WREG|CONFIG1 \n");
+	rt_time_wait_us(1000);
+	/*Config all channels*/
+	tx_buffer[0] = _WREG|CH1SET;
+	tx_buffer[1] = 7;
+	for (int i=2; i<10; i++) tx_buffer[i]=0x60;
+	spi_tx_buffer_size = 10;
+	rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
+	printf("\n _WREG|CH1SET \n");
+	rt_time_wait_us(1000);
+	/*Start ADS1298*/
 
-    tx_buffer [0] = _START;
-    spi_tx_buffer_size = 1;
-    rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
-    printf("\n _START \n");
-    rt_time_wait_us(1000);
+	tx_buffer [0] = _START;
+	spi_tx_buffer_size = 1;
+	rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
+	printf("\n _START \n");
+	rt_time_wait_us(1000);
 
-    tx_buffer [0] = _RDATAC;
-    spi_tx_buffer_size = 1;
-    rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
-    printf("\n _RDATAC \n");
+	tx_buffer [0] = _RDATAC;
+	spi_tx_buffer_size = 1;
+	rt_spim_send(spim, tx_buffer, spi_tx_buffer_size*8, RT_SPIM_CS_AUTO, NULL);
+	printf("\n _RDATAC \n");
 
-    rt_time_wait_us(1000);
+	rt_time_wait_us(1000);
 
 	rt_uart_conf_init(&conf_UART);
 	conf_UART.itf = 0;
@@ -136,7 +136,7 @@ int main()
 	printf("%x \n", datamux_2);
 
 
-/*
+	/*
 
 	datamux_1 = datamux_1  |  0x00010000;
 	datamux_1 = datamux_1  & ~0x00020000;
@@ -144,8 +144,8 @@ int main()
 	datamux_2 = datamux_2  |  0x00004000;
 	datamux_2 = datamux_2  & ~0x00008000;
 
-	*((unsigned int *) (PADFUN0_REG)) = datamux_1;
-	*((unsigned int *) (PADFUN1_REG)) = datamux_2;
+	 *((unsigned int *) (PADFUN0_REG)) = datamux_1;
+	 *((unsigned int *) (PADFUN1_REG)) = datamux_2;
 	rt_time_wait_us(1e3);
 
 	unsigned int datamux_3 = *((unsigned int *) (PADFUN0_REG));
@@ -155,7 +155,7 @@ int main()
 
 
 
-*/
+	 */
 
 	rt_time_wait_us(1e3);
 	rt_gpio_set_dir(0, 1<<GPIO_MUX1, RT_GPIO_IS_OUT);
@@ -163,7 +163,7 @@ int main()
 
 
 
-    config_interrupts_for_DRDY(gpio_handler);			//config the GPIO and EXT Interrupt for the ADS1298.
+	config_interrupts_for_DRDY(gpio_handler);			//config the GPIO and EXT Interrupt for the ADS1298.
 
 
 	printf("\n Finished setting up stuff . . .\n ");
@@ -171,36 +171,54 @@ int main()
 	int converted_data[N_CHANNELS];
 
 	while(1)
-	  	{
+	{
 
-	  	    rt_event_yield(NULL); // check for new events.
+		rt_event_yield(NULL); // check for new events.
 
-	  	    if(get_dr_state())
-	  	    {
-	  	    	//receive_ads1298_data();
-	  	    	rt_spim_receive(spim, rx_buffer, 27*8, RT_SPIM_CS_AUTO, NULL);
+		if(get_dr_state())
+		{
+			//receive_ads1298_data();
+			rt_spim_receive(spim, rx_buffer, 27*8, RT_SPIM_CS_AUTO, NULL);
+			if(MUX_SETTLE_counter < (SETTLING_SAMPLES - 1))  //numero di campioni del settle
+			{
+				MUX_SETTLE_counter = MUX_SETTLE_counter + 1;
 
+
+			}
+			else   // DATA ARE STABLE (SETTLING_SAMPLES) because settling time is passed
+			{
+
+				rt_time_wait_us(25);
+				MUX_custom_sequence(MUX_sequence, MUX_CUSTOM_SEQUENCE_LENGTH);
+				MUX_SETTLE_counter = 0;
+				rt_uart_write(uart, tx_buffer_UART, 24, NULL);
+
+			}
+
+
+
+			/*
 	  	    	rt_gpio_set_pin_value(0, GPIO_MUX1, out_1);
 	  		  	rt_gpio_set_pin_value(0, GPIO_MUX2, out_2);
 	  		  	out_1 = 1 -out_1;
 	  		  	out_2 = 1 - out_2;
+			 */
+
+			//	  	    	convert_channels(ADS_SAMPLE_PCK_LENGTH, rx_buffer, SPI_HEADER_SIZE_ADS1298, RESOLUTION_24_BITS, N_CHANNELS, converted_data);
+			//	  			sprintf(tx_buffer, "\n Values = %08d, %08d, %d, %08d, %08d, %08d, %08d, %08d", 	converted_data[0], converted_data[1], converted_data[2], converted_data[3],
+			//	  																	converted_data[4], converted_data[5], converted_data[6], converted_data[7]);
 
 
-//	  	    	convert_channels(ADS_SAMPLE_PCK_LENGTH, rx_buffer, SPI_HEADER_SIZE_ADS1298, RESOLUTION_24_BITS, N_CHANNELS, converted_data);
-//	  			sprintf(tx_buffer, "\n Values = %08d, %08d, %d, %08d, %08d, %08d, %08d, %08d", 	converted_data[0], converted_data[1], converted_data[2], converted_data[3],
-//	  																	converted_data[4], converted_data[5], converted_data[6], converted_data[7]);
+			set_dr_state(RESET_FLAG);
 
+			//	  	    	rt_uart_write(uart, tx_buffer, 50, NULL);
+			//printf("\n Here\n");
 
-	  			set_dr_state(RESET_FLAG);
-
-//	  	    	rt_uart_write(uart, tx_buffer, 50, NULL);
-	  	    	//printf("\n Here\n");
-
-	  	    }
+		}
 
 
 
-	  	}
+	}
 
 
 }

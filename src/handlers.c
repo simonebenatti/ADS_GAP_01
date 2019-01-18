@@ -6,11 +6,7 @@ static int DR = 0;
 
 void gpio_handler(void *arg)
 {
-
 	DR = 1;
-
-	//printf("\nHere\n");
-  
 }
 
 

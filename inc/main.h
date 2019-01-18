@@ -19,6 +19,11 @@
 
 
 
+#define GPIO_MUX1 					5
+#define GPIO_MUX2					17
+
+#define MUX_CUSTOM_SEQUENCE_LENGTH  4
+#define SETTLING_SAMPLES			4
 
 
 
