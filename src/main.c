@@ -17,7 +17,7 @@
 #include"main.h"
 
 #define BUFFER_SIZE 256
-#define BAUD_RATE 1382400
+#define BAUD_RATE 921600 //1382400
 #define NB_TICKS 20
 
 
@@ -93,7 +93,7 @@ int main()
 	/*Config Config1 to Config3*/
 	tx_buffer[0] = _WREG|CONFIG1;		//starting address
 	tx_buffer[1] = 2;					//n bits to be written-1
-	tx_buffer[2] = 0x83;//0xE2;				//values . . . .
+	tx_buffer[2] = 0x84;//0xE2;				//values . . . .
 	tx_buffer[3] = 0xF0;//0x55;
 	tx_buffer[4] = 0xE0;//0xC0;
 	//tx_buffer[5] = 0x02;
@@ -174,6 +174,24 @@ int main()
 
 	int converted_data[N_CHANNELS];
 	char pck_counter;
+
+/*
+
+	char usartString0[] = {"\r\nSET CONTROL BAUD 921600,8N1\r\n"};
+
+	//sprintf(tx_buffer, "\r\nSET CONTROL BAUD 921600,8n1\r\n");
+	rt_time_wait_us(1000);
+	rt_uart_write(uart, usartString0, sizeof(usartString0), NULL);
+	rt_time_wait_us(1000);
+
+
+	while(1)
+	{
+
+		int i = 0;
+		i++;
+	}
+*/
 	while(1)
 	{
 
@@ -196,10 +214,17 @@ int main()
 				MUX_custom_sequence(MUX_sequence, MUX_CUSTOM_SEQUENCE_LENGTH);
 				MUX_SETTLE_counter = 0;
 				rx_buffer[1] = pck_counter++;
-				//rt_uart_write(uart, rx_buffer, 24, NULL);
-				*((unsigned int *) (TX_SADDR)) = rx_buffer;
-				*((unsigned int *) (TX_SIZE)) = 0x10;
-				*((unsigned int *) (TX_CFG)) = 0x10;
+				//rt_uart_write(uart, rx_buffer, 4, NULL);
+				while(*((volatile unsigned int *) (TX_SIZE)) > 0)
+				{}
+
+				*((volatile unsigned int *) (TX_SADDR)) = rx_buffer;
+				*((volatile unsigned int *) (TX_SIZE)) = 0x04;
+				*((volatile unsigned int *) (TX_CFG)) = 0x10;
+
+
+
+
 
 
 
@@ -220,8 +245,16 @@ int main()
 			//	  	    	convert_channels(ADS_SAMPLE_PCK_LENGTH, rx_buffer, SPI_HEADER_SIZE_ADS1298, RESOLUTION_24_BITS, N_CHANNELS, converted_data);
 			//	  			sprintf(tx_buffer, "\n Values = %08d, %08d, %d, %08d, %08d, %08d, %08d, %08d", 	converted_data[0], converted_data[1], converted_data[2], converted_data[3],
 			//	  																	converted_data[4], converted_data[5], converted_data[6], converted_data[7]);
+			/*
+			sprintf(tx_buffer, "\r\n SET CONTROL BAUD 921600,8n1\r\n");
+			rt_uart_write(uart, tx_buffer, 50, NULL);
+			set_dr_state(RESET_FLAG);
+			while(1)
+			{
+				tx_buffer[0] = tx_buffer[0] + 1;
+			}
 
-
+			*/
 			set_dr_state(RESET_FLAG);
 
 			//	  	    	rt_uart_write(uart, tx_buffer, 50, NULL);

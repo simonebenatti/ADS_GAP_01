@@ -127,7 +127,9 @@
   "loader": {
     "bridge": "none",
     "cable": "proxy",
-    "binaries": [],
+    "binaries": [
+      "/home/simone/eclipse-workspace/ADS_GAP_01/build/gap/test/test"
+    ],
     "boot": {
       "mode": "rom"
     }
@@ -6653,5 +6655,5 @@
   "vp_comps": [
     "system_tree"
   ],
-  "config_args": "/platform=board **/rt/type=pulp-rt"
+  "config_args": "/platform=board **/rt/type=pulp-rt **/loader/binaries=/home/simone/eclipse-workspace/ADS_GAP_01/build/gap/test/test"
 }
