@@ -56,10 +56,14 @@ int main()
 
 	rt_spim_t *spim;
 	rt_spim_conf_t conf;
+	rt_spim_conf_t conf_spi_out;
+
+
 	rt_uart_conf_t conf_UART;
 	if(rt_event_alloc(NULL,3)) return -1;
 
 	rt_spim_conf_init(&conf);
+
 	conf.max_baudrate = BIT_RATE_SPI;
 	conf.id = 1;
 	conf.cs = 0;
@@ -68,6 +72,19 @@ int main()
 	conf.phase = SPI_CPHA1;
 	spim = rt_spim_open(NULL, &conf, NULL);
 	printf("\n SPI Configured \n");
+
+	rt_time_wait_us (1000);
+
+	rt_spim_conf_init(&conf_spi_out);
+	conf_spi_out.max_baudrate = 4e6;
+	conf_spi_out.id = 0;
+	conf_spi_out.cs = 0; // !!!!
+    rt_spim_t *spim_out = rt_spim_open(NULL, &conf_spi_out, NULL);
+	if (spim == NULL) return -1;
+	char *tx_buffer_out = rt_alloc(RT_ALLOC_PERIPH, BUFFER_SIZE);
+
+	printf("\n SPI OUT CONFIGURED Configured \n");
+
 
 	rt_time_wait_us (1000);
 
@@ -174,6 +191,7 @@ int main()
 
 	int converted_data[N_CHANNELS];
 	char pck_counter;
+	*((volatile unsigned int *) (TX_SIZE)) = 0x1B;
 
 /*
 
@@ -213,16 +231,29 @@ int main()
 				rt_time_wait_us(25);
 				MUX_custom_sequence(MUX_sequence, MUX_CUSTOM_SEQUENCE_LENGTH);
 				MUX_SETTLE_counter = 0;
-				rx_buffer[1] = pck_counter++;
+				rx_buffer[0] = 0x00;
+			    rx_buffer[1] = 0x00;
+				rx_buffer[2]= 0x00;
+				rx_buffer[3] = 0x00;
+
+				//rx_buffer[1] = pck_counter++;
+
 				//rt_uart_write(uart, rx_buffer, 4, NULL);
+/*
 				while(*((volatile unsigned int *) (TX_SIZE)) > 0)
 				{}
 
 				*((volatile unsigned int *) (TX_SADDR)) = rx_buffer;
 				*((volatile unsigned int *) (TX_SIZE)) = 0x04;
 				*((volatile unsigned int *) (TX_CFG)) = 0x10;
+*/
 
+				tx_buffer_out[0] = 0x55;
+				tx_buffer_out[1] = 0xAA;
+				tx_buffer_out[2]= 0x55;
+				tx_buffer_out[3] = 0xAA;
 
+				rt_spim_send(spim_out, tx_buffer_out, 32, RT_SPIM_CS_AUTO, NULL);
 
 
 
